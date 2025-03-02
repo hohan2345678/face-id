@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pymongo import MongoClient
 from bson import ObjectId
 from datetime import datetime
@@ -9,6 +10,15 @@ import numpy as np
 from deepface import DeepFace
 
 app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change this to the actual frontend origin for security (e.g., ["http://localhost:3000"])
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
 
 # MongoDB Connection
 client = MongoClient("mongodb+srv://jakulerogod69:jakulerogods@jaja.uvxgo.mongodb.net/?retryWrites=true&w=majority&appName=jaja")
@@ -52,7 +62,7 @@ async def detect_face():
         if match and 'identity' in match[0] and len(match[0]['identity']) > 0:
             matched_image = match[0]['identity'][0]
             student_id = path.basename(matched_image).split(".")[0]
-            
+
             # Save attendance record in MongoDB
             inserted = attendance.insert_one({
                 "student_id": ObjectId(student_id),
@@ -65,3 +75,4 @@ async def detect_face():
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
