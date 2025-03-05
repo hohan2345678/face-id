@@ -8,16 +8,17 @@ import pytz
 import cv2
 import numpy as np
 from deepface import DeepFace
+from pyzbar.pyzbar import decode 
 
 app = FastAPI()
 
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Change this to the actual frontend origin for security (e.g., ["http://localhost:3000"])
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all HTTP methods (GET, POST, etc.)
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"], 
+    allow_headers=["*"], 
 )
 
 # MongoDB Connection
@@ -28,20 +29,28 @@ attendance = db["Attendance"]
 # Base directory
 base_path = path.abspath(getcwd())
 
-@app.get("/detect-face/")
+@app.get("/detect-face")
 async def detect_face():
-    """Opens the webcam, captures an image, and performs face recognition."""
+    """Opens the webcam, displays a window, captures an image, and performs face recognition."""
     try:
         cap = cv2.VideoCapture(0)  # Open webcam
 
         if not cap.isOpened():
             return {"status": "error", "message": "Could not access the webcam"}
 
-        ret, frame = cap.read()
-        cap.release()  # Release the webcam after capturing
-
-        if not ret:
-            return {"status": "error", "message": "Failed to capture image from webcam"}
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                cap.release()
+                return {"status": "error", "message": "Failed to capture image from webcam"}
+            
+            cv2.imshow("Face Detection - Press 's' to capture", frame)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('s'):
+                break
+        
+        cap.release()
+        cv2.destroyAllWindows()
 
         # Save the captured frame temporarily
         temp_frame_path = path.join(base_path, "temp_frame.jpg")
@@ -76,3 +85,45 @@ async def detect_face():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/scan-qr")
+async def scan_qr():
+    """Opens the webcam, displays a window, scans for QR code, and records attendance."""
+    try:
+        cap = cv2.VideoCapture(0)  # Open webcam
+
+        if not cap.isOpened():
+            return {"status": "error", "message": "Could not access the webcam"}
+
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                cap.release()
+                return {"status": "error", "message": "Failed to capture image from webcam"}
+            
+            cv2.imshow("QR Scanner - Press 's' to scan", frame)
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('s'):
+                break
+        
+        cap.release()
+        cv2.destroyAllWindows()
+
+        # Decode QR code(s) in the captured frame
+        decoded_objects = decode(frame)
+        
+        if not decoded_objects:
+            return {"status": "failed", "message": "No QR code detected"}
+
+        # Assuming that there is only one QR code, use the first decoded object
+        qr_data = decoded_objects[0].data.decode("utf-8")
+
+        # Save attendance record in MongoDB
+        inserted = attendance.insert_one({
+            "student_id": qr_data, 
+            "time": datetime.now(tz=pytz.timezone("Asia/Manila"))
+        })
+
+        return {"status": "success", "student_id": qr_data, "attendance_id": str(inserted.inserted_id)}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

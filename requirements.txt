@@ -66,3 +66,4 @@ wrapt==1.16.0
 
 fastapi==0.110.0
 uvicorn==0.29.0
+pyzbar
