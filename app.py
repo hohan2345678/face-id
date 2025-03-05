@@ -73,12 +73,12 @@ async def detect_face():
             student_id = path.basename(matched_image).split(".")[0]
 
             # Save attendance record in MongoDB
-            inserted = attendance.insert_one({
-                "student_id": ObjectId(student_id),
-                "time": datetime.now(tz=pytz.timezone("Asia/Manila"))
-            })
+            # inserted = attendance.insert_one({
+            #     "student_id": ObjectId(student_id),
+            #     "time": datetime.now(tz=pytz.timezone("Asia/Manila"))
+            # })
 
-            return {"status": "success", "student_id": student_id, "attendance_id": str(inserted.inserted_id)}
+            return {"status": "success", "student_id": student_id}
         else:
             return {"status": "failed", "message": "No match found"}
 
@@ -118,12 +118,12 @@ async def scan_qr():
         qr_data = decoded_objects[0].data.decode("utf-8")
 
         # Save attendance record in MongoDB
-        inserted = attendance.insert_one({
-            "student_id": qr_data, 
-            "time": datetime.now(tz=pytz.timezone("Asia/Manila"))
-        })
+        # inserted = attendance.insert_one({
+        #     "student_id": qr_data, 
+        #     "time": datetime.now(tz=pytz.timezone("Asia/Manila"))
+        # })
 
-        return {"status": "success", "student_id": qr_data, "attendance_id": str(inserted.inserted_id)}
+        return {"status": "success", "student_id": qr_data}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
